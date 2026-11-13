@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cerdas Cermat COC</title>
+<style>
+:root{--ink:#101a2e;--panel:#1a2744;--line:#2d3c63;--chalk:#f4f1e8;--mute:#9fb0d3;--ok:#2fbf71;--bad:#ef4b5c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ink);color:var(--chalk);font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;min-height:100vh}
+button,input,select{font:inherit}
+button{cursor:pointer;border:0;border-radius:12px;padding:.8rem 1rem;font-weight:700;background:var(--line);color:var(--chalk)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #fff;outline-offset:2px}
+button:disabled{opacity:.35;cursor:not-allowed}
+main{max-width:980px;margin:0 auto;padding:12px}
+#pick{position:fixed;inset:0;background:var(--ink);display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;padding:20px;text-align:center;z-index:9}
+#pick h1{font-size:clamp(2rem,8vw,3.4rem);margin:0}
+#pick p{color:var(--mute);max-width:34rem;margin:0}
+#pick button{width:min(20rem,100%);font-size:1.2rem;padding:1.1rem}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;color:var(--mute);font-size:.95rem}
+.top button{padding:.45rem .8rem;font-size:.85rem}
+#teams{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.t{background:var(--panel);border-radius:14px;padding:10px 6px;text-align:center;border-bottom:6px solid var(--c);opacity:.7;transition:transform .2s,opacity .2s}
+.t.on{opacity:1;transform:translateY(-3px);box-shadow:0 0 0 3px var(--c)}
+.t b{display:block;font-size:clamp(.85rem,3.2vw,1.15rem);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t span{display:block;font-size:clamp(2rem,9vw,3.6rem);font-weight:800;line-height:1.1;color:var(--c)}
+body.juri .t{cursor:pointer}
+#card{position:relative;background:var(--panel);border-radius:18px;margin:12px 0;padding:22px 14px;text-align:center;border:4px solid var(--line);min-height:250px;display:flex;flex-direction:column;justify-content:center;gap:10px}
+#card.benar{border-color:var(--ok)}#card.salah{border-color:var(--bad)}
+#qno{color:var(--mute)}
+#qtxt{font-size:clamp(2.4rem,11vw,5.5rem);font-weight:800;letter-spacing:.02em;word-break:break-word}
+#ans{font-size:1.4rem;color:#ffd166;min-height:1.8rem}
+#st{font-size:1.1rem}
+#mark{position:absolute;right:12px;top:8px;width:84px;height:84px;border-radius:50%;display:none;align-items:center;justify-content:center;font-size:3.4rem;font-weight:800;color:#fff}
+#card.benar #mark{display:flex;background:var(--ok);animation:pop .45s}
+#card.salah #mark{display:flex;background:var(--bad);animation:pop .45s}
+@keyframes pop{0%{transform:scale(.2)}70%{transform:scale(1.2)}100%{transform:scale(1)}}
+#timer{font-size:clamp(3rem,14vw,6rem);font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+#timer.low{color:var(--bad)}
+#bar{height:12px;background:var(--line);border-radius:8px;overflow:hidden}
+#bar i{display:block;height:100%;width:100%;background:var(--ok);transition:width .25s linear}
+#bar.low i{background:var(--bad)}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:10px 0}
+.go{background:var(--ok);color:#06210f;font-size:1.3rem;padding:1.1rem}
+.stop{background:var(--bad);color:#fff;font-size:1.3rem;padding:1.1rem}
+details{background:var(--panel);border-radius:12px;padding:10px 14px;margin-top:10px}
+summary{cursor:pointer;font-weight:700}
+.set{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:10px}
+label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--mute)}
+input,select{padding:.6rem;border-radius:8px;border:2px solid var(--line);background:var(--ink);color:var(--chalk)}
+#hint{text-align:center;color:#ffd166;font-size:.9rem;min-height:1.2rem}
+body.peserta .jury{display:none!important}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="pick">
+  <h1>Cerdas Cermat COC</h1>
+  <p>Pilih tampilan. Juri mengatur soal, waktu, dan nilai. Peserta menampilkan soal, waktu, dan skor di layar proyektor atau HP.</p>
+  <button style="background:#f5b301;color:#201600" data-r="juri">Tampilan Juri</button>
+  <button style="background:#2ec4b6;color:#02201d" data-r="peserta">Tampilan Peserta</button>
+</div>
+<main>
+  <div class="top"><span id="role"></span><button id="snd">Suara: nyala</button></div>
+  <div id="teams"></div>
+  <div id="card">
+    <div id="mark"></div>
+    <div id="qno"></div>
+    <div id="qtxt"></div>
+    <div id="ans"></div>
+    <div id="timer"></div>
+    <div id="bar"><i></i></div>
+    <div id="st"></div>
+  </div>
+  <div id="hint"></div>
+
+  <section class="jury">
+    <div class="row">
+      <button class="go" data-a="start">Mulai / Lanjut</button>
+      <button data-a="pause">Jeda</button>
+      <button data-a="reset">Ulang waktu</button>
+    </div>
+    <div class="row">
+      <button class="go" data-a="benar">✓ Benar</button>
+      <button class="stop" data-a="salah">✗ Salah</button>
+      <button data-a="undo">Batalkan nilai</button>
+    </div>
+    <div class="row">
+      <button data-a="prev">← Soal sebelumnya</button>
+      <button data-a="next">Soal berikutnya →</button>
+    </div>
+    <details>
+      <summary>Pengaturan</summary>
+      <div class="set">
+        <label>Nama Regu 1<input id="n0"></label>
+        <label>Nama Regu 2<input id="n1"></label>
+        <label>Nama Regu 3<input id="n2"></label>
+        <label>Durasi per soal
+          <select id="dur"><option>10</option><option>15</option><option>20</option><option>30</option><option>45</option><option>60</option></select></label>
+        <label>Poin jika benar<input id="ok" type="number"></label>
+        <label>Poin jika salah<input id="no" type="number"></label>
+        <label>Lompat ke soal<input id="jump" type="number" min="1" max="90"></label>
+        <label>Giliran regu
+          <select id="rot"><option value="1">Otomatis bergilir</option><option value="0">Manual (ketuk kartu regu)</option></select></label>
+      </div>
+      <div class="row"><button class="stop" data-a="wipe">Reset semua skor</button></div>
+    </details>
+  </section>
+</main>
+
+<script>
+// 90 soal: 1-30 mudah, 31-90 sedang
+const Q=[
+"15 + 27","83 − 46","7 × 8","72 ÷ 9","36 + 49","91 − 58","12 × 6","96 ÷ 8","128 + 75","204 − 87",
+"9 × 13","144 ÷ 12","250 + 175","500 − 238","15 × 4","108 ÷ 6","64 + 38","300 − 164","25 × 8","225 ÷ 15",
+"18 + 6 × 3","40 − 12 ÷ 4","5 × 6 + 10","48 ÷ 6 + 9","20 + 30 − 15","7 × 4 − 8","81 ÷ 9 × 3","14 + 16 ÷ 2","60 − 5 × 7","9 × 5 ÷ 3",
+"24 × 3 + 18","150 − 6 × 12","96 ÷ 8 + 15 × 2","45 + 55 − 38","13 × 7 − 29","144 ÷ 12 × 5","8 × 9 + 6 × 4","200 − 15 × 8","360 ÷ 9 − 14","17 + 23 × 3",
+"125 + 8 × 11","84 ÷ 7 + 56 ÷ 8","19 × 5 − 40","72 + 48 ÷ 6","11 × 11 − 50","315 − 127 + 48","36 × 5 ÷ 4","90 − 72 ÷ 8 × 3","16 × 4 + 25 × 2","450 ÷ 15 + 28",
+"23 + 17 × 4 − 10","6 × 7 × 3","240 ÷ 8 ÷ 5","135 + 65 ÷ 5","14 × 6 − 9 × 5","99 − 45 + 28","12 × 12 ÷ 8","500 − 25 × 14","78 + 96 ÷ 12 × 2","18 × 5 + 120 ÷ 4",
+"35 × 4 − 76","210 ÷ 7 + 19 × 3","87 + 64 − 59","15 × 15 − 100","640 ÷ 16 + 33","27 × 3 + 45 ÷ 9","400 − 18 × 9","56 ÷ 7 × 12 − 30","19 + 28 × 5 − 44","1000 − 345 − 278",
+"24 × 25","17 × 6 + 17 × 4","288 ÷ 12 + 15 × 6","75 + 125 × 2","13 × 8 − 72 ÷ 6","360 ÷ 18 × 7","49 + 51 × 3 − 80","18 × 18","900 ÷ 25 + 64","32 × 5 − 48 ÷ 4",
+"156 + 244 − 175","21 × 9 − 14 × 6","720 ÷ 9 ÷ 4","65 + 35 × 4 ÷ 2","26 × 4 + 18 × 5","840 ÷ 12 − 25","99 × 3 − 100","48 + 12 × 12 ÷ 6","15 × 6 − 84 ÷ 7 + 20","1500 − 28 × 25"
+];
+const calc=s=>Function('"use strict";return ('+s.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-')+')')();
+const K='coc-state-v1',COL=['#f5b301','#2ec4b6','#ff6b6b'];
+const D={i:0,turn:0,teams:[{n:'Regu 1',p:0},{n:'Regu 2',p:0},{n:'Regu 3',p:0}],dur:20,rem:20000,st:'idle',end:0,v:null,ev:{id:0,t:''},ok:10,no:0,rot:1,last:null};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function load(){try{return Object.assign({},D,JSON.parse(localStorage.getItem(K)))}catch(e){return JSON.parse(JSON.stringify(D))}}
+function save(){try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}}
+let S=load(),role='',lastEv=S.ev.id,lastSec=-1,ctx=null,mute=false;
+
+/* ---------- suara ---------- */
+function tone(f,d,type,vol,at){if(!ctx||mute)return;const o=ctx.createOscillator(),g=ctx.createGain(),t=ctx.currentTime+(at||0);
+ o.type=type||'sine';o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(vol||.3,t);g.gain.exponentialRampToValueAtTime(.001,t+d);
+ o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+d+.05)}
+const snd={
+ benar(){tone(988,.5,'sine',.35,0);tone(1319,.8,'sine',.35,.18);tone(1976,.9,'sine',.15,.18)},
+ salah(){tone(220,.35,'sawtooth',.25,0);tone(165,.6,'sawtooth',.25,.3)},
+ tick(){tone(1100,.08,'square',.12)},
+ timeup(){[0,.35,.7].forEach(a=>tone(740,.28,'square',.2,a))}
+};
+document.addEventListener('pointerdown',()=>{if(!ctx){try{ctx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(ctx&&ctx.state==='suspended')ctx.resume()});
+$('snd').onclick=()=>{mute=!mute;$('snd').textContent='Suara: '+(mute?'mati':'nyala')};
+
+/* ---------- logika ---------- */
+const rem=()=>S.st==='run'?Math.max(0,S.end-Date.now()):S.rem;
+const ev=t=>{S.ev={id:Date.now()+Math.random(),t}};
+function go(n){S.i=Math.max(0,Math.min(Q.length-1,n));S.v=null;S.last=null;S.st='idle';S.rem=S.dur*1000;if(+S.rot)S.turn=S.i%3}
+function act(a){
+ if(a==='start'&&!S.v&&(S.st==='idle'||S.st==='pause')){S.end=Date.now()+S.rem;S.st='run'}
+ else if(a==='pause'&&S.st==='run'){S.rem=rem();S.st='pause'}
+ else if(a==='reset'&&!S.v){S.st='idle';S.rem=S.dur*1000}
+ else if((a==='benar'||a==='salah')&&!S.v){S.rem=rem();S.st='done';S.v=a;const d=a==='benar'?+S.ok:+S.no;S.teams[S.turn].p+=d;S.last={t:S.turn,d};ev(a)}
+ else if(a==='undo'&&S.v){if(S.last)S.teams[S.last.t].p-=S.last.d;S.last=null;S.v=null;S.st='pause'}
+ else if(a==='next')go(S.i+1);
+ else if(a==='prev')go(S.i-1);
+ else if(a==='wipe'){if(!confirm('Reset semua skor menjadi 0 dan kembali ke soal 1?'))return;S.teams.forEach(t=>t.p=0);go(0)}
+ save();R();
+}
+
+/* ---------- tampilan ---------- */
+const fmt=ms=>Math.ceil(ms/1000);
+function R(){
+ const q=Q[S.i],r=rem(),sec=fmt(r),total=S.dur*1000,hide=role==='peserta'&&S.st==='idle';
+ $('teams').innerHTML=S.teams.map((t,i)=>`<div class="t ${i===S.turn?'on':''}" data-t="${i}" style="--c:${COL[i]}"><b>${esc(t.n)}</b><span>${t.p}</span></div>`).join('');
+ $('card').className=S.v||'';
+ $('mark').textContent=S.v==='benar'?'✓':S.v==='salah'?'✗':'';
+ $('qno').textContent=`Soal ${S.i+1} dari ${Q.length} · Giliran ${S.teams[S.turn].n}${S.i<30?' · Mudah':' · Sedang'}`;
+ $('qtxt').textContent=hide?'Bersiap…':q+' = ?';
+ $('ans').textContent=(role==='juri'||S.v||S.st==='timeup')?'Jawaban: '+calc(q):'';
+ $('timer').textContent=sec;$('timer').className=(S.st!=='idle'&&sec<=5)?'low':'';
+ $('bar').className=(S.st!=='idle'&&sec<=5)?'low':'';$('bar').firstElementChild.style.width=(r/total*100)+'%';
+ $('st').textContent={idle:'Menunggu juri memulai',run:'Waktu berjalan',pause:'Waktu dijeda',timeup:'Waktu habis!',done:S.v==='benar'?`Benar! ${S.last?(S.last.d>=0?'+':'')+S.last.d:''} poin`:`Salah${S.last&&S.last.d?' '+S.last.d+' poin':''}`}[S.st];
+ $('hint').textContent=(!ctx||ctx.state!=='running')?'Ketuk layar sekali untuk mengaktifkan suara.':'';
+ if(role==='juri'){document.querySelectorAll('[data-a]').forEach(b=>{const a=b.dataset.a;
+  b.disabled=(a==='start'&&(!!S.v||S.st==='run'||S.st==='timeup'))||(a==='pause'&&S.st!=='run')||((a==='benar'||a==='salah')&&!!S.v)||(a==='undo'&&!S.v)||(a==='reset'&&!!S.v)}); }
+ // suara kejadian
+ if(S.ev.id!==lastEv){lastEv=S.ev.id;if(snd[S.ev.t])snd[S.ev.t]()}
+ if(S.st==='run'&&sec!==lastSec&&sec>0&&sec<=5)snd.tick();
+ lastSec=S.st==='run'?sec:-1;
+}
+
+function start(r){
+ role=r;document.body.className=r;$('pick').style.display='none';
+ $('role').textContent=r==='juri'?'Tampilan Juri':'Tampilan Peserta';
+ if(r==='juri'){
+  [0,1,2].forEach(i=>{const e=$('n'+i);e.value=S.teams[i].n;e.oninput=()=>{S.teams[i].n=e.value||('Regu '+(i+1));save();R()}});
+  $('dur').value=S.dur;$('dur').onchange=e=>{S.dur=+e.target.value;if(!S.v&&S.st==='idle')S.rem=S.dur*1000;save();R()};
+  $('ok').value=S.ok;$('ok').oninput=e=>{S.ok=+e.target.value||0;save()};
+  $('no').value=S.no;$('no').oninput=e=>{S.no=+e.target.value||0;save()};
+  $('rot').value=String(S.rot);$('rot').onchange=e=>{S.rot=+e.target.value;save()};
+  $('jump').onchange=e=>{const n=parseInt(e.target.value);if(n>=1&&n<=Q.length){go(n-1);save();R()}e.target.value=''};
+  document.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>act(b.dataset.a));
+  $('teams').onclick=e=>{const t=e.target.closest('[data-t]');if(t&&!S.v){S.turn=+t.dataset.t;save();R()}};
+  setInterval(()=>{if(S.st==='run'&&Date.now()>=S.end){S.st='timeup';S.rem=0;ev('timeup');save()}R()},200);
+ }else{
+  setInterval(()=>{S=load();R()},250);
+ }
+ R();
+}
+document.querySelectorAll('#pick [data-r]').forEach(b=>b.onclick=()=>{location.hash=b.dataset.r;start(b.dataset.r)});
+if(/peserta/.test(location.hash))start('peserta');else if(/juri/.test(location.hash))start('juri');
+</script>
+</body>
+</html>
